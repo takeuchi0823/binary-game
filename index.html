@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2進数変換ゲーム</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f06d06 0%, #ffc107 100%);
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE 10+ */
+            user-select: none; /* Standard */
+        }
+
+        h1 {
+            font-size: 2.8em;
+            margin-bottom: 25px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            letter-spacing: 2px;
+        }
+
+        .conversion-mode-selection {
+            margin-bottom: 25px;
+            display: flex;
+            gap: 15px;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 50px;
+            padding: 8px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .conversion-mode-button {
+            padding: 10px 20px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #fff;
+            background-color: transparent;
+        }
+
+        .conversion-mode-button.active {
+            background-color: #007bff; /* Active tab color */
+            box-shadow: 0 3px 10px rgba(0,0,0,0.3);
+        }
+
+        .conversion-mode-button:not(.active):hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        .level-mode-selection {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .level-button {
+            padding: 15px 30px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            color: #fff;
+            background-color: #28a745; /* Green */
+        }
+        .level-button:hover {
+            background-color: #218838;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        
+        .game-container {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            color: #333;
+            display: none; /* Hidden until mode is selected */
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .score-display {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .score-reset-button {
+            background-color: #dc3545; /* Red */
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .score-reset-button:hover {
+            background-color: #c82333;
+            transform: rotate(15deg);
+        }
+
+        .question-area {
+            margin-bottom: 30px;
+        }
+
+        .question-text {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #4a4a4a;
+            letter-spacing: 1px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .binary-input-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .bit-tile {
+            width: 60px;
+            height: 60px;
+            background-color: #f0f0f0; /* White for 0 */
+            border: 3px solid #ccc;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column; /* 垂直方向に並べる */
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+            padding-bottom: 25px; /* 重み表示のスペースを確保 */
+        }
+
+        .bit-tile:active {
+            transform: scale(0.95);
+        }
+
+        .bit-tile.active {
+            background-color: #ff9800; /* Orange for 1 */
+            border-color: #e65100;
+            color: white;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2), 0 0 15px rgba(255,152,0,0.6);
+        }
+
+        .bit-value { /* 0/1が表示される部分 */
+            font-size: 2.2em;
+            line-height: 1; /* 行の高さを調整して中央に */
+            margin-bottom: 5px; /* 重みとの間隔 */
+        }
+
+        .bit-weight-label { /* 重み (1, 2, 4, 8...)が表示される部分 */
+            position: absolute; /* 親要素のbit-tileを基準に配置 */
+            bottom: 5px; /* 下からの位置 */
+            font-size: 0.9em;
+            color: #666; /* デフォルトの色 */
+            transition: color 0.2s ease; /* 色変化のアニメーション */
+        }
+        
+        .bit-tile.active .bit-weight-label {
+            color: #fff; /* 1 (オレンジ)の時は白くする */
+        }
+
+
+        .decimal-input {
+            padding: 15px;
+            font-size: 2em;
+            text-align: center;
+            border: 3px solid #ccc;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 250px;
+            margin-bottom: 30px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            color: #333;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .decimal-input:focus {
+            border-color: #007bff;
+        }
+
+        .submit-button, .next-problem-button {
+            padding: 15px 40px;
+            background-color: #4CAF50; /* Green */
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            margin-top: 20px; /* result-areaからの間隔 */
+        }
+
+        .submit-button:hover, .next-problem-button:hover {
+            background-color: #45a049;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+        .next-problem-button {
+            background-color: #007bff; /* Blue for next button */
+            margin-bottom: 20px; /* ゲームコンテナ下部との間隔 */
+        }
+        .next-problem-button:hover {
+            background-color: #0056b3;
+        }
+
+
+        .result-message {
+            font-size: 2em;
+            font-weight: bold;
+            margin-top: 20px;
+            min-height: 40px; /* To prevent layout shift */
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.4s ease-out;
+        }
+
+        .result-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .result-message.correct {
+            color: #28a745; /* Green */
+            text-shadow: 1px 1px 3px rgba(40, 167, 69, 0.5);
+        }
+
+        .result-message.incorrect {
+            color: #dc3545; /* Red */
+            text-shadow: 1px 1px 3px rgba(220, 53, 69, 0.5);
+        }
+
+        .correct-answer-display {
+            font-size: 1.5em;
+            color: #007bff;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none !important; /* !important to override other display properties */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            .conversion-mode-button {
+                padding: 8px 15px;
+                font-size: 1em;
+            }
+            .level-button {
+                padding: 12px 25px;
+                font-size: 1.1em;
+            }
+            .game-container {
+                padding: 25px;
+                margin: 0 10px;
+            }
+            .score-display {
+                top: 15px;
+                right: 15px;
+                padding: 8px 15px;
+                font-size: 1em;
+            }
+            .question-text {
+                font-size: 2em;
+            }
+            .bit-tile {
+                width: 50px;
+                height: 50px;
+                font-size: 1.8em;
+                padding-bottom: 20px; /* スペース調整 */
+            }
+            .decimal-input {
+                padding: 10px;
+                font-size: 1.8em;
+            }
+            .submit-button, .next-problem-button {
+                padding: 12px 30px;
+                font-size: 1.3em;
+            }
+            .result-message {
+                font-size: 1.6em;
+            }
+            .correct-answer-display {
+                font-size: 1.3em;
+            }
+            .bit-value {
+                font-size: 1.8em;
+            }
+            .bit-weight-label {
+                font-size: 0.8em;
+                bottom: 3px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8em;
+                text-align: center;
+            }
+            .conversion-mode-selection {
+                flex-direction: column;
+                gap: 10px;
+                padding: 5px;
+            }
+            .conversion-mode-button {
+                width: 90%;
+                margin: 0 auto;
+            }
+            .level-mode-selection {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .level-button {
+                width: 80%;
+                margin: 0 auto;
+            }
+            .game-container {
+                padding: 20px;
+            }
+            .score-display {
+                position: static;
+                margin-bottom: 20px;
+            }
+            .binary-input-container {
+                gap: 8px;
+            }
+            .bit-tile {
+                width: 45px;
+                height: 45px;
+                font-size: 1.6em;
+                padding-bottom: 18px; /* スペース調整 */
+            }
+            .decimal-input {
+                width: 90%;
+            }
+            .bit-value {
+                font-size: 1.6em;
+            }
+            .bit-weight-label {
+                font-size: 0.7em;
+                bottom: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="score-display">
+        正解数: <span id="correct-count">0</span>
+        <button class="score-reset-button" id="reset-score-button">✕</button>
+    </div>
+
+    <h1>💡 2進数変換マスター 💡</h1>
+
+    <div class="conversion-mode-selection">
+        <button class="conversion-mode-button active" id="dec-to-bin-mode-button">10進数→2進数</button>
+        <button class="conversion-mode-button" id="bin-to-dec-mode-button">2進数→10進数</button>
+    </div>
+
+    <div class="level-mode-selection" id="level-mode-selection">
+        <button class="level-button" id="easy-mode-button">初級モード (4ビット)</button>
+        <button class="level-button" id="hard-mode-button">上級モード (8ビット)</button>
+    </div>
+
+    <div class="game-container" id="game-container">
+        <div class="question-area">
+            <p class="question-label" id="question-label">10進数: </p>
+            <p class="question-text"><span id="question-number"></span></p>
+        </div>
+
+        <div id="input-area">
+            <div class="binary-input-container" id="binary-input-container"></div>
+            <input type="number" class="decimal-input hidden" id="decimal-input" placeholder="ここに10進数を入力">
+        </div>
+
+        <button class="submit-button" id="submit-answer-button">回答する</button>
+        <button class="next-problem-button hidden" id="next-problem-button">次の問題へ</button>
+
+        <div id="result-area">
+            <p class="result-message" id="result-message"></p>
+            <p class="correct-answer-display hidden" id="correct-answer-display"></p>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestionValue = 0; // 10進数または2進数文字列
+        let currentAnswerValue = 0; // 正解となる10進数または2進数文字列
+        let currentLevelBits = 0; // 4 for easy, 8 for hard
+        let currentConversionMode = 'dec_to_bin'; // 'dec_to_bin' or 'bin_to_dec'
+        let currentBinaryInput = []; // Array of 0s and 1s for dec_to_bin user input
+        let incorrectAttempts = 0;
+        let correctCount = parseInt(localStorage.getItem('binaryGameCorrectCount')) || 0; // Load from local storage
+
+        // UI要素の取得
+        const conversionModeButtons = document.querySelectorAll('.conversion-mode-button');
+        const decToBinModeButton = document.getElementById('dec-to-bin-mode-button');
+        const binToDecModeButton = document.getElementById('bin-to-dec-mode-button');
+        const levelModeSelection = document.getElementById('level-mode-selection');
+        const easyModeButton = document.getElementById('easy-mode-button');
+        const hardModeButton = document.getElementById('hard-mode-button');
+        const gameContainer = document.getElementById('game-container');
+        const questionLabel = document.getElementById('question-label');
+        const questionNumberSpan = document.getElementById('question-number');
+        const binaryInputContainer = document.getElementById('binary-input-container');
+        const decimalInput = document.getElementById('decimal-input');
+        const submitAnswerButton = document.getElementById('submit-answer-button');
+        const nextProblemButton = document.getElementById('next-problem-button'); // 新しく追加
+        const resultMessage = document.getElementById('result-message');
+        const correctCountSpan = document.getElementById('correct-count');
+        const resetScoreButton = document.getElementById('reset-score-button');
+        const correctAnswerDisplay = document.getElementById('correct-answer-display');
+
+        // 正解数の表示と保存
+        function updateCorrectCountDisplay() {
+            correctCountSpan.textContent = correctCount;
+            localStorage.setItem('binaryGameCorrectCount', correctCount);
+        }
+
+        // ゲームUIのリセットと問題生成
+        function generateProblem() {
+            incorrectAttempts = 0;
+            resultMessage.classList.remove('show', 'correct', 'incorrect');
+            correctAnswerDisplay.classList.add('hidden');
+            resultMessage.textContent = '';
+            decimalInput.value = ''; // 入力欄をクリア
+            submitAnswerButton.classList.remove('hidden'); // 回答ボタンを表示
+            nextProblemButton.classList.add('hidden'); // 次の問題ボタンを非表示
+
+            let maxNumber;
+            if (currentLevelBits === 4) {
+                maxNumber = 15; // 2^4 - 1
+            } else if (currentLevelBits === 8) {
+                maxNumber = 255; // 2^8 - 1
+            }
+
+            if (currentConversionMode === 'dec_to_bin') {
+                // 10進数 -> 2進数モード
+                questionLabel.textContent = '10進数: ';
+                binaryInputContainer.classList.remove('hidden');
+                decimalInput.classList.add('hidden');
+
+                currentQuestionValue = Math.floor(Math.random() * maxNumber) + 1; // 1から最大値まで
+                questionNumberSpan.textContent = currentQuestionValue;
+                currentAnswerValue = currentQuestionValue.toString(2).padStart(currentLevelBits, '0');
+                createBitTiles(currentLevelBits);
+            } else {
+                // 2進数 -> 10進数モード
+                questionLabel.textContent = '2進数: ';
+                binaryInputContainer.classList.add('hidden');
+                decimalInput.classList.remove('hidden');
+
+                // ランダムな2進数を生成
+                let binaryString = '';
+                for (let i = 0; i < currentLevelBits; i++) {
+                    binaryString += Math.round(Math.random());
+                }
+                // 全て0になる問題を避ける (オプション)
+                if (parseInt(binaryString, 2) === 0) {
+                    binaryString = binaryString.substring(0, currentLevelBits - 1) + '1';
+                }
+                
+                currentQuestionValue = binaryString;
+                questionNumberSpan.textContent = currentQuestionValue;
+                currentAnswerValue = parseInt(binaryString, 2); // 10進数に変換して正解とする
+            }
+        }
+
+        // 2進数入力タイル (10進数→2進数モード用)
+        function createBitTiles(numBits) {
+            binaryInputContainer.innerHTML = '';
+            currentBinaryInput = Array(numBits).fill(0); // Initialize all to 0 (white)
+
+            for (let i = numBits - 1; i >= 0; i--) {
+                const tile = document.createElement('div');
+                tile.classList.add('bit-tile');
+                tile.dataset.bitIndex = i; // Store the bit position (e.g., 0 for 2^0, 1 for 2^1)
+
+                const bitValueDiv = document.createElement('div'); // ビットの値 (0/1) を表示する新しいdiv
+                bitValueDiv.classList.add('bit-value');
+                bitValueDiv.textContent = '0';
+                tile.appendChild(bitValueDiv);
+                
+                const bitWeight = Math.pow(2, i); // 2のべき乗の重み
+                const bitWeightLabel = document.createElement('span'); // ビットの重みを表示する新しいspan
+                bitWeightLabel.classList.add('bit-weight-label');
+                bitWeightLabel.textContent = bitWeight.toString(); // 実際の10進数の重みを表示
+                tile.appendChild(bitWeightLabel);
+
+                tile.addEventListener('click', () => {
+                    const index = numBits - 1 - parseInt(tile.dataset.bitIndex); // Adjust index for currentBinaryInput array
+                    currentBinaryInput[index] = 1 - currentBinaryInput[index]; // Toggle 0 to 1, or 1 to 0
+                    bitValueDiv.textContent = currentBinaryInput[index].toString(); // ビット値のみを更新
+                    if (currentBinaryInput[index] === 1) {
+                        tile.classList.add('active');
+                    } else {
+                        tile.classList.remove('active');
+                    }
+                });
+                binaryInputContainer.appendChild(tile);
+            }
+        }
+
+        // 回答の判定
+        function checkAnswer() {
+            let isCorrect = false;
+            let playerAnswer;
+            let displayedCorrectAnswer;
+
+            if (currentConversionMode === 'dec_to_bin') {
+                // 10進数 -> 2進数モードの判定
+                playerAnswer = currentBinaryInput.map(String).join('');
+                isCorrect = (playerAnswer === currentAnswerValue);
+                displayedCorrectAnswer = currentAnswerValue;
+            } else {
+                // 2進数 -> 10進数モードの判定
+                playerAnswer = parseInt(decimalInput.value, 10);
+                isCorrect = (playerAnswer === currentAnswerValue);
+                displayedCorrectAnswer = currentAnswerValue;
+            }
+
+            resultMessage.classList.remove('show', 'correct', 'incorrect');
+            correctAnswerDisplay.classList.add('hidden');
+
+            if (isCorrect) {
+                resultMessage.textContent = '🎉 正解！ 🎉';
+                resultMessage.classList.add('show', 'correct');
+                correctCount++;
+                updateCorrectCountDisplay();
+                submitAnswerButton.classList.add('hidden'); // 回答ボタンを非表示
+                nextProblemButton.classList.remove('hidden'); // 次の問題ボタンを表示
+
+            } else {
+                incorrectAttempts++;
+                if (incorrectAttempts >= 3) {
+                    resultMessage.textContent = '❌ 残念！3回間違えました ❌';
+                    resultMessage.classList.add('show', 'incorrect');
+                    
+                    if (currentConversionMode === 'dec_to_bin') {
+                        correctAnswerDisplay.textContent = `正解は ${displayedCorrectAnswer} です`;
+                    } else {
+                        correctAnswerDisplay.textContent = `正解は ${displayedCorrectAnswer} です`;
+                    }
+                    correctAnswerDisplay.classList.remove('hidden');
+                    submitAnswerButton.classList.add('hidden'); // 回答ボタンを非表示
+                    nextProblemButton.classList.remove('hidden'); // 次の問題ボタンを表示
+                } else {
+                    resultMessage.textContent = `不正解… もう一度！ (あと${3 - incorrectAttempts}回)`;
+                    resultMessage.classList.add('show', 'incorrect');
+                }
+            }
+        }
+
+        // --- イベントリスナー ---
+
+        // 変換モード切り替え
+        conversionModeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                conversionModeButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                currentConversionMode = button.id === 'dec-to-bin-mode-button' ? 'dec_to_bin' : 'bin_to_dec';
+                
+                // モードを切り替えたら、レベル選択画面に戻る
+                gameContainer.style.display = 'none';
+                levelModeSelection.style.display = 'flex';
+                // この時点で回答と次の問題ボタンは一旦隠す
+                submitAnswerButton.classList.add('hidden');
+                nextProblemButton.classList.add('hidden');
+            });
+        });
+
+        // レベル選択
+        easyModeButton.addEventListener('click', () => {
+            currentLevelBits = 4;
+            levelModeSelection.style.display = 'none';
+            gameContainer.style.display = 'block';
+            generateProblem();
+        });
+
+        hardModeButton.addEventListener('click', () => {
+            currentLevelBits = 8;
+            levelModeSelection.style.display = 'none';
+            gameContainer.style.display = 'block';
+            generateProblem();
+        });
+
+        // 回答ボタン
+        submitAnswerButton.addEventListener('click', checkAnswer);
+
+        // 次の問題へボタン
+        nextProblemButton.addEventListener('click', generateProblem); // クリックで次の問題へ
+
+        // スコアリセットボタン
+        resetScoreButton.addEventListener('click', () => {
+            if (confirm('正解数をリセットしてもよろしいですか？')) {
+                correctCount = 0;
+                updateCorrectCountDisplay();
+            }
+        });
+
+        // アプリ起動時の初期表示
+        updateCorrectCountDisplay();
+        // 初期モードをセット（10進数→2進数モードのボタンをアクティブに）
+        decToBinModeButton.classList.add('active');
+        // ゲーム画面は最初は非表示で、レベル選択画面が表示される
+        gameContainer.style.display = 'none';
+        levelModeSelection.style.display = 'flex';
+    </script>
+</body>
+</html>
